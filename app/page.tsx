@@ -1,4 +1,5 @@
 "use client";
+import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useRef, useState } from "react";
 import YouTube, { YouTubeEvent } from "react-youtube";
@@ -10,12 +11,13 @@ const Home = () => {
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
+  const [progress, setProgress] = useState(0);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const opts: Options = {
-    height: "390",
-    width: "640",
+    height: "100%",
+    width: "100%",
     playerVars: {
       // https://developers.google.com/youtube/player_parameters
       autoplay: 1,
@@ -30,18 +32,18 @@ const Home = () => {
     const duration = await playerRef.current.getDuration();
     setVideoDuration(duration);
     setEnd(duration);
+
+    setInterval(async () => {
+      const currentTime = await playerRef.current?.getCurrentTime();
+      setProgress((currentTime! / duration) * 100);
+    }, 50);
   };
 
   const onStateChange = (event: YouTubeEvent<number>) => {
     console.debug(event.data);
     switch (event.data) {
-      /* case PlayerStates.UNSTARTED:
-        break; */
-      /* case PlayerStates.ENDED:
-        playerRef.current?.seekTo(start, true);
-        break; */
       case PlayerStates.PLAYING:
-        startResetTimer();
+        startLoopTimer();
         break;
       case PlayerStates.PAUSED:
         if (timerRef.current) {
@@ -64,7 +66,7 @@ const Home = () => {
     console.debug(value);
   };
 
-  const startResetTimer = async () => {
+  const startLoopTimer = async () => {
     if (timerRef.current) {
       console.debug("clearing timeout");
       clearTimeout(timerRef.current);
@@ -93,7 +95,7 @@ const Home = () => {
         if (
           (await playerRef.current!.getPlayerState()) === PlayerStates.PLAYING
         ) {
-          startResetTimer();
+          startLoopTimer();
         }
       }
     };
@@ -109,7 +111,7 @@ const Home = () => {
         if (
           (await playerRef.current!.getPlayerState()) === PlayerStates.PLAYING
         ) {
-          startResetTimer();
+          startLoopTimer();
         }
       }
     };
@@ -128,21 +130,25 @@ const Home = () => {
       />
 
       <YouTube
-        className="mb-10"
+        className="mb-10 h-3/5 w-3/4"
         videoId={videoId}
         opts={opts}
         onReady={onReady}
         onStateChange={onStateChange}
       />
 
-      <Slider
-        className="w-3/4"
-        value={[start, end]}
-        max={videoDuration}
-        step={1}
-        minStepsBetweenThumbs={1}
-        onValueChange={onSliderValueChange}
-      />
+      <div className="relative flex w-3/4 flex-col justify-center">
+        <Slider
+          value={[start, end]}
+          max={videoDuration}
+          step={1}
+          minStepsBetweenThumbs={1}
+          onValueChange={onSliderValueChange}
+          className="absolute z-10"
+        />
+
+        <Progress value={progress} className="h-2" />
+      </div>
     </div>
   );
 };
