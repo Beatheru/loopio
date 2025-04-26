@@ -1,6 +1,9 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { formatSeconds } from "@/lib/utils";
+import { CircleX, Repeat } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import YouTube, { YouTubeEvent } from "react-youtube";
 import PlayerStates from "youtube-player/dist/constants/PlayerStates";
@@ -126,6 +129,27 @@ const Home = () => {
         />
 
         <Progress value={progress} className="h-2" />
+      </div>
+
+      <div className="mt-10 flex w-full justify-evenly">
+        <div className="flex flex-col items-center">
+          <Button>Set Start</Button>
+          <div>{formatSeconds(start)}</div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button size="icon">
+            <Repeat />
+          </Button>
+          <Button size="icon">
+            <CircleX />
+          </Button>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <Button>Set End</Button>
+          <div>{formatSeconds(end)}</div>
+        </div>
       </div>
     </div>
   );
