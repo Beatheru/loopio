@@ -32,15 +32,15 @@ const Home = () => {
     },
   };
 
-  const onReady = async (event: YouTubeEvent) => {
+  const onReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
     playerRef.current.pauseVideo();
-    const duration = await playerRef.current.getDuration();
+    const duration = playerRef.current.getDuration();
     setVideoDuration(duration);
     setEnd(duration);
 
-    setInterval(async () => {
-      const currentTime = await playerRef.current?.getCurrentTime();
+    setInterval(() => {
+      const currentTime = playerRef.current!.getCurrentTime();
       setProgress((currentTime! / duration) * 100);
     }, 50);
   };
@@ -70,9 +70,9 @@ const Home = () => {
     console.debug(value);
   };
 
-  const checkLoop = async () => {
+  const checkLoop = () => {
     if (playerRef.current) {
-      const currentTime = await playerRef.current.getCurrentTime();
+      const currentTime = playerRef.current.getCurrentTime();
 
       if (currentTime >= endRef.current) {
         playerRef.current.seekTo(startRef.current, true);

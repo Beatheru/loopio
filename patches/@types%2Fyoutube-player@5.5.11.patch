@@ -1,0 +1,15 @@
+diff --git a/dist/types.d.ts b/dist/types.d.ts
+index 640f8ea401d29994028b74fc985fb6d58749d6a8..4648824ee47257499f9da7a1e8b3deed70f84140 100644
+--- a/dist/types.d.ts
++++ b/dist/types.d.ts
+@@ -57,8 +57,8 @@ export interface YouTubePlayer {
+     destroy(): Promise<void>;
+     getAvailablePlaybackRates(): Promise<readonly number[]>;
+     getAvailableQualityLevels(): Promise<readonly string[]>;
+-    getCurrentTime(): Promise<number>;
+-    getDuration(): Promise<number>;
++    getCurrentTime(): number;
++    getDuration(): number;
+     getIframe(): Promise<HTMLIFrameElement>;
+     getOption(module: string, option: string): Promise<any>;
+     getOptions(): Promise<string[]>;

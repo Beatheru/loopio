@@ -35,5 +35,8 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "patchedDependencies": {
+    "@types/youtube-player@5.5.11": "patches/@types%2Fyoutube-player@5.5.11.patch"
   }
 }
