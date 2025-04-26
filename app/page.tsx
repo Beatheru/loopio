@@ -12,8 +12,11 @@ const Home = () => {
   const [end, setEnd] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [progress, setProgress] = useState(0);
+
   const playerRef = useRef<YouTubePlayer | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const animationRef = useRef<number>(0);
+  const startRef = useRef<number>(0);
+  const endRef = useRef<number>(0);
 
   const opts: Options = {
     height: "100%",
@@ -43,12 +46,10 @@ const Home = () => {
     console.debug(event.data);
     switch (event.data) {
       case PlayerStates.PLAYING:
-        startLoopTimer();
+        animationRef.current = requestAnimationFrame(checkLoop);
         break;
       case PlayerStates.PAUSED:
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-        }
+        cancelAnimationFrame(animationRef.current);
         break;
     }
   };
@@ -66,57 +67,34 @@ const Home = () => {
     console.debug(value);
   };
 
-  const startLoopTimer = async () => {
-    if (timerRef.current) {
-      console.debug("clearing timeout");
-      clearTimeout(timerRef.current);
-    }
-
+  const checkLoop = async () => {
     if (playerRef.current) {
       const currentTime = await playerRef.current.getCurrentTime();
 
-      console.debug(`setting timeout for ${end - currentTime} seconds`);
-      timerRef.current = setTimeout(
-        () => {
-          playerRef.current?.seekTo(start, true);
-        },
-        (end - currentTime) * 1000,
-      );
+      if (currentTime >= endRef.current) {
+        playerRef.current.seekTo(startRef.current, true);
+      }
+
+      requestAnimationFrame(checkLoop);
     }
   };
 
   useEffect(() => {
-    console.debug("start change:", start);
-
-    const setPlayer = async () => {
-      if (playerRef.current) {
-        playerRef.current.seekTo(start, true);
-
-        if (
-          (await playerRef.current!.getPlayerState()) === PlayerStates.PLAYING
-        ) {
-          startLoopTimer();
-        }
-      }
+    return () => {
+      cancelAnimationFrame(animationRef.current);
     };
+  }, []);
 
-    setPlayer();
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(start, true);
+    }
+
+    startRef.current = start;
   }, [start]);
 
   useEffect(() => {
-    console.debug("end change:", end);
-
-    const setPlayer = async () => {
-      if (playerRef.current) {
-        if (
-          (await playerRef.current!.getPlayerState()) === PlayerStates.PLAYING
-        ) {
-          startLoopTimer();
-        }
-      }
-    };
-
-    setPlayer();
+    endRef.current = end;
   }, [end]);
 
   return (
