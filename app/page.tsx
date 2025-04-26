@@ -133,21 +133,48 @@ const Home = () => {
 
       <div className="mt-10 flex w-full justify-evenly">
         <div className="flex flex-col items-center">
-          <Button>Set Start</Button>
+          <Button
+            onClick={() => {
+              const currentTime = playerRef.current?.getCurrentTime();
+              if (currentTime) {
+                setStart(currentTime);
+              }
+            }}
+          >
+            Set Start
+          </Button>
           <div>{formatSeconds(start)}</div>
         </div>
 
         <div className="flex gap-2">
-          <Button size="icon">
-            <Repeat />
+          <Button
+            onClick={() => {
+              playerRef.current?.seekTo(start, true);
+            }}
+          >
+            <Repeat /> Reloop
           </Button>
-          <Button size="icon">
-            <CircleX />
+          <Button
+            onClick={() => {
+              setStart(0);
+              setEnd(videoDuration);
+            }}
+          >
+            <CircleX /> Clear
           </Button>
         </div>
 
         <div className="flex flex-col items-center">
-          <Button>Set End</Button>
+          <Button
+            onClick={() => {
+              const currentTime = playerRef.current?.getCurrentTime();
+              if (currentTime) {
+                setEnd(currentTime);
+              }
+            }}
+          >
+            Set End
+          </Button>
           <div>{formatSeconds(end)}</div>
         </div>
       </div>
