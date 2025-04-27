@@ -19,6 +19,7 @@ const Home = () => {
   const [videoDuration, setVideoDuration] = useState(0);
   const [progress, setProgress] = useState(0);
   const [inputError, setInputError] = useState<string>("");
+  const [speed, setSpeed] = useState(1.0);
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const animationRef = useRef<number>(0);
@@ -80,13 +81,6 @@ const Home = () => {
     setInputError("Invalid Youtube URL or Video ID");
   };
 
-  const onSliderValueChange = (value: number[]) => {
-    setStart(value[0]);
-    setEnd(value[1]);
-
-    console.debug(value);
-  };
-
   const checkLoop = () => {
     if (playerRef.current) {
       const currentTime = playerRef.current.getCurrentTime();
@@ -117,6 +111,12 @@ const Home = () => {
     endRef.current = end;
   }, [end]);
 
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.setPlaybackRate(speed);
+    }
+  }, [speed]);
+
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-2">
       <div className="flex flex-col items-center gap-1">
@@ -144,8 +144,14 @@ const Home = () => {
           max={videoDuration}
           step={1}
           minStepsBetweenThumbs={1}
-          onValueChange={onSliderValueChange}
+          onValueChange={(value: number[]) => {
+            setStart(value[0]);
+            setEnd(value[1]);
+
+            console.debug("Start and end:", value);
+          }}
           className="absolute z-10"
+          tooltipFormat={formatSeconds}
         />
 
         <Progress value={progress} className="h-2" />
@@ -197,6 +203,20 @@ const Home = () => {
           </Button>
           <div>{formatSeconds(end)}</div>
         </div>
+      </div>
+
+      <div className="mt-10 flex w-1/2 flex-col items-center gap-4">
+        <Slider
+          value={[speed]}
+          max={2}
+          step={0.05}
+          onValueChange={(value: number[]) => {
+            setSpeed(value[0]);
+
+            console.debug("Speed:", value);
+          }}
+        />
+        <div>Speed: {Math.round(speed * 100)}%</div>
       </div>
     </div>
   );
