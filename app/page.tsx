@@ -22,7 +22,8 @@ const Home = () => {
   const [speed, setSpeed] = useState(1.0);
 
   const playerRef = useRef<YouTubePlayer | null>(null);
-  const animationRef = useRef<number>(0);
+  const loopRef = useRef<number>(0);
+  const progressRef = useRef<number>(0);
   const startRef = useRef<number>(0);
   const endRef = useRef<number>(0);
 
@@ -44,20 +45,17 @@ const Home = () => {
     setVideoDuration(duration);
     setEnd(duration);
 
-    setInterval(() => {
-      const currentTime = playerRef.current!.getCurrentTime();
-      setProgress((currentTime! / duration) * 100);
-    }, 50);
+    progressRef.current = requestAnimationFrame(checkProgress);
   };
 
   const onStateChange = (event: YouTubeEvent<number>) => {
     console.debug(event.data);
     switch (event.data) {
       case PlayerStates.PLAYING:
-        animationRef.current = requestAnimationFrame(checkLoop);
+        loopRef.current = requestAnimationFrame(checkLoop);
         break;
       case PlayerStates.PAUSED:
-        cancelAnimationFrame(animationRef.current);
+        cancelAnimationFrame(loopRef.current);
         break;
     }
   };
@@ -84,7 +82,6 @@ const Home = () => {
   const checkLoop = () => {
     if (playerRef.current) {
       const currentTime = playerRef.current.getCurrentTime();
-
       if (currentTime >= endRef.current) {
         playerRef.current.seekTo(startRef.current, true);
       }
@@ -93,9 +90,20 @@ const Home = () => {
     }
   };
 
+  const checkProgress = () => {
+    if (playerRef.current) {
+      const currentTime = playerRef.current.getCurrentTime();
+      const duration = playerRef.current.getDuration();
+      setProgress((currentTime / duration) * 100);
+    }
+
+    progressRef.current = requestAnimationFrame(checkProgress);
+  };
+
   useEffect(() => {
     return () => {
-      cancelAnimationFrame(animationRef.current);
+      cancelAnimationFrame(loopRef.current);
+      cancelAnimationFrame(progressRef.current);
     };
   }, []);
 
