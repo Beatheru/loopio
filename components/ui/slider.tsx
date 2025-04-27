@@ -4,6 +4,19 @@ import * as React from "react";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./tooltip";
+
+interface SliderProps
+  extends React.ComponentProps<typeof SliderPrimitive.Root> {
+  showTooltip?: boolean;
+  tooltipFormat?: (value: number) => string;
+  interval?: number;
+}
 
 function Slider({
   className,
@@ -11,8 +24,10 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  showTooltip = true,
+  tooltipFormat = (value: number) => value.toString(),
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: SliderProps) {
   const _values = React.useMemo(
     () =>
       Array.isArray(value)
@@ -22,6 +37,22 @@ function Slider({
           : [min, max],
     [value, defaultValue, min, max],
   );
+
+  const [showTooltipState, setShowTooltipState] = React.useState(false);
+  const handlePointerDown = () => {
+    setShowTooltipState(true);
+  };
+
+  const handlePointerUp = () => {
+    setShowTooltipState(false);
+  };
+
+  React.useEffect(() => {
+    document.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      document.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, []);
 
   return (
     <SliderPrimitive.Root
@@ -35,6 +66,7 @@ function Slider({
         className,
       )}
       {...props}
+      onPointerDown={handlePointerDown}
     >
       <SliderPrimitive.Track
         data-slot="slider-track"
@@ -49,13 +81,21 @@ function Slider({
           )}
         />
       </SliderPrimitive.Track>
-      {Array.from({ length: _values.length }, (_, index) => (
-        <SliderPrimitive.Thumb
-          data-slot="slider-thumb"
-          key={index}
-          className="border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
-        />
-      ))}
+      <TooltipProvider>
+        {Array.from({ length: _values.length }, (_, index) => (
+          <Tooltip open={showTooltip && showTooltipState} key={index}>
+            <TooltipTrigger asChild>
+              <SliderPrimitive.Thumb
+                data-slot="slider-thumb"
+                className="border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="font-medium">{tooltipFormat(_values[index])}</p>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </TooltipProvider>
     </SliderPrimitive.Root>
   );
 }
