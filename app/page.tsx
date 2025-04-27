@@ -2,12 +2,15 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
-import { formatSeconds } from "@/lib/utils";
+import { formatSeconds, isValidYoutubeVideoID } from "@/lib/utils";
 import { CircleX, Repeat } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import YouTube, { YouTubeEvent } from "react-youtube";
 import PlayerStates from "youtube-player/dist/constants/PlayerStates";
 import { Options, YouTubePlayer } from "youtube-player/dist/types";
+
+const YOUTUBE_REGEX =
+  /^(?:(?:http(?:s)?):\/\/)?(?:(?:www|m)\.)?(?:youtube\.com|youtu.be)\/watch\?v=?([\w\-]{11})(?:\S+)?$/;
 
 const Home = () => {
   const [videoId, setVideoId] = useState("dQw4w9WgXcQ");
@@ -15,6 +18,7 @@ const Home = () => {
   const [end, setEnd] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [inputError, setInputError] = useState<string>("");
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const animationRef = useRef<number>(0);
@@ -57,10 +61,23 @@ const Home = () => {
     }
   };
 
-  const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      setVideoId((event.target as HTMLInputElement).value);
+  const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.target.value;
+    setInputError("");
+
+    if (isValidYoutubeVideoID(input)) {
+      setVideoId(input);
+      return;
     }
+
+    const match = input.match(YOUTUBE_REGEX);
+
+    if (match && isValidYoutubeVideoID(match[1])) {
+      setVideoId(match[1]);
+      return;
+    }
+
+    setInputError("Invalid Youtube URL or Video ID");
   };
 
   const onSliderValueChange = (value: number[]) => {
@@ -102,13 +119,16 @@ const Home = () => {
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-2">
-      <div>Enter video ID</div>
-      <input
-        type="text"
-        defaultValue={videoId}
-        onKeyDown={onKeyDown}
-        className="rounded-2xl bg-white p-2 text-black"
-      />
+      <div className="flex flex-col items-center gap-1">
+        <label>Youtube URL or Video ID</label>
+        <input
+          type="text"
+          defaultValue={videoId}
+          onChange={onInputChange}
+          className="rounded-md bg-white p-2 text-black"
+        />
+        <div className="text-red-500">{inputError}</div>
+      </div>
 
       <YouTube
         className="mb-10 h-3/5 w-3/4"

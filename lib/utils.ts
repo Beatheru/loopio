@@ -20,3 +20,7 @@ export function formatSeconds(input: number) {
 
   return `${hours > 0 ? `${hours}:` : ""}${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${secondDecimals}`;
 }
+
+export function isValidYoutubeVideoID(videoId: string) {
+  return /^[\w\-]{11}$/.test(videoId);
+}
