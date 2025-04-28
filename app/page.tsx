@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { formatSeconds, isValidYoutubeVideoID } from "@/lib/utils";
 import { CircleX, Repeat } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import YouTube, { YouTubeEvent } from "react-youtube";
 import PlayerStates from "youtube-player/dist/constants/PlayerStates";
@@ -13,26 +14,32 @@ const YOUTUBE_REGEX =
   /^(?:(?:http(?:s)?):\/\/)?(?:(?:www|m)\.)?(?:youtube\.com|youtu.be)\/watch\?v=?([\w\-]{11})(?:\S+)?$/;
 
 const Home = () => {
-  const [videoId, setVideoId] = useState("dQw4w9WgXcQ");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [progress, setProgress] = useState(0);
   const [inputError, setInputError] = useState<string>("");
   const [speed, setSpeed] = useState(1.0);
+  const [paused, setPaused] = useState(true);
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const loopRef = useRef<number>(0);
   const progressRef = useRef<number>(0);
   const startRef = useRef<number>(0);
   const endRef = useRef<number>(0);
+  const pausedRef = useRef<boolean>(true);
+
+  const videoId = searchParams.get("videoId") || "dQw4w9WgXcQ";
 
   const opts: Options = {
     height: "100%",
     width: "100%",
     playerVars: {
       // https://developers.google.com/youtube/player_parameters
-      autoplay: 1,
+      autoplay: 0,
       fs: 0,
       iv_load_policy: 3,
     },
@@ -40,10 +47,12 @@ const Home = () => {
 
   const onReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
-    playerRef.current.pauseVideo();
+    seek(start);
     const duration = playerRef.current.getDuration();
     setVideoDuration(duration);
-    setEnd(duration);
+    if (end === 0) {
+      setEnd(duration);
+    }
 
     progressRef.current = requestAnimationFrame(checkProgress);
   };
@@ -53,9 +62,12 @@ const Home = () => {
     switch (event.data) {
       case PlayerStates.PLAYING:
         loopRef.current = requestAnimationFrame(checkLoop);
+        setPaused(false);
         break;
       case PlayerStates.PAUSED:
         cancelAnimationFrame(loopRef.current);
+        cancelAnimationFrame(progressRef.current);
+        setPaused(true);
         break;
     }
   };
@@ -65,14 +77,38 @@ const Home = () => {
     setInputError("");
 
     if (isValidYoutubeVideoID(input)) {
-      setVideoId(input);
+      setQueryParams(
+        {
+          videoId: input,
+          start: "0",
+          end: "0",
+        },
+        true,
+        true,
+      );
+
+      setStart(0);
+      setEnd(0);
+
       return;
     }
 
     const match = input.match(YOUTUBE_REGEX);
 
     if (match && isValidYoutubeVideoID(match[1])) {
-      setVideoId(match[1]);
+      setQueryParams(
+        {
+          videoId: match[1],
+          start: "0",
+          end: "0",
+        },
+        true,
+        true,
+      );
+
+      setStart(0);
+      setEnd(0);
+
       return;
     }
 
@@ -83,7 +119,7 @@ const Home = () => {
     if (playerRef.current) {
       const currentTime = playerRef.current.getCurrentTime();
       if (currentTime >= endRef.current) {
-        playerRef.current.seekTo(startRef.current, true);
+        seek(startRef.current);
       }
 
       requestAnimationFrame(checkLoop);
@@ -100,6 +136,36 @@ const Home = () => {
     progressRef.current = requestAnimationFrame(checkProgress);
   };
 
+  const setQueryParams = (
+    params: Record<string, string>,
+    reset: boolean = false,
+    refresh: boolean = false,
+  ) => {
+    const newParams = new URLSearchParams(
+      !reset ? searchParams.toString() : "",
+    );
+    Object.entries(params).forEach(([key, value]) => {
+      newParams.set(key, value);
+    });
+    router.replace(`?${newParams.toString()}`, { scroll: false });
+
+    if (refresh) {
+      cancelAnimationFrame(loopRef.current);
+      cancelAnimationFrame(progressRef.current);
+    }
+  };
+
+  const seek = (seconds: number) => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(seconds, true);
+      if (pausedRef.current) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    }
+  };
+
   useEffect(() => {
     return () => {
       cancelAnimationFrame(loopRef.current);
@@ -109,7 +175,7 @@ const Home = () => {
 
   useEffect(() => {
     if (playerRef.current) {
-      playerRef.current.seekTo(start, true);
+      seek(start);
     }
 
     startRef.current = start;
@@ -120,10 +186,29 @@ const Home = () => {
   }, [end]);
 
   useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  useEffect(() => {
     if (playerRef.current) {
       playerRef.current.setPlaybackRate(speed);
     }
   }, [speed]);
+
+  // On init
+  useEffect(() => {
+    const start = Number(searchParams.get("start")) || 0;
+    const end = Number(searchParams.get("end")) || 0;
+
+    setStart(start);
+    setEnd(end);
+
+    setQueryParams({
+      start: start.toString(),
+      end: end.toString(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-2">
@@ -156,6 +241,11 @@ const Home = () => {
             setStart(value[0]);
             setEnd(value[1]);
 
+            setQueryParams({
+              start: value[0].toString(),
+              end: value[1].toString(),
+            });
+
             console.debug("Start and end:", value);
           }}
           className="absolute z-10"
@@ -183,7 +273,7 @@ const Home = () => {
         <div className="flex gap-2">
           <Button
             onClick={() => {
-              playerRef.current?.seekTo(start, true);
+              seek(start);
             }}
           >
             <Repeat /> Reloop
